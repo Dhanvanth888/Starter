@@ -68,31 +68,32 @@ app.get("/notify", async (req, res) => {
     return res.status(400).send("❌ Missing message");
   }
 
-  // Get current date and time
+  // Convert to IST (UTC+5:30)
   const now = new Date();
-  const date = now.toISOString().split("T")[0]; // e.g., "2025-07-09"
-  const time = now.toTimeString().split(" ")[0]; // e.g., "21:38:02"
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  const istTime = new Date(utc + 5.5 * 60 * 60000);
+
+  const date = istTime.toISOString().split("T")[0]; // e.g., "2025-07-09"
+  const time = istTime.toTimeString().split(" ")[0]; // e.g., "21:38:02"
 
   const path = `/notification/${date}`;
   const body = { [time]: message };
 
   try {
-    // 1️⃣ Log the new notification
+    // 1️⃣ Save new notification
     await fetch(`${BASE_URL}${path}.json`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
 
-    // 2️⃣ Fetch all notification dates
+    // 2️⃣ Fetch all existing notification days
     const allDatesRes = await fetch(`${BASE_URL}/notification.json`);
     const allDates = await allDatesRes.json();
 
     if (allDates) {
       const dateKeys = Object.keys(allDates).sort().reverse(); // latest first
-
-      // 3️⃣ Keep only latest 2
-      const toDelete = dateKeys.slice(2); // older than 2 latest dates
+      const toDelete = dateKeys.slice(2); // keep only latest 2 dates
 
       for (const oldDate of toDelete) {
         await fetch(`${BASE_URL}/notification/${oldDate}.json`, {
@@ -101,9 +102,9 @@ app.get("/notify", async (req, res) => {
       }
     }
 
-    res.send(`✅ Notification logged and old entries cleaned (kept last 2 days)`);
+    res.send(`✅ Notification logged at ${date} ${time} (IST), and old entries cleaned`);
   } catch (err) {
     console.error(err);
-    res.status(500).send("❌ Failed to log or cleanup notification");
+    res.status(500).send("❌ Failed to log or clean notification");
   }
 });
