@@ -76,35 +76,50 @@ app.get("/notify", async (req, res) => {
   const date = istTime.toISOString().split("T")[0]; // e.g., "2025-07-09"
   const time = istTime.toTimeString().split(" ")[0]; // e.g., "21:38:02"
 
-  const path = `/notification/${date}`;
-  const body = { [time]: message };
+  const flatKey = `${date} ${time}`;
+  const path = `/notification/${encodeURIComponent(flatKey)}`;
 
   try {
     // 1️⃣ Save new notification
     await fetch(`${BASE_URL}${path}.json`, {
-      method: "PATCH",
+      method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(message),
     });
 
-    // 2️⃣ Fetch all existing notification days
-    const allDatesRes = await fetch(`${BASE_URL}/notification.json`);
-    const allDates = await allDatesRes.json();
+    // 2️⃣ Fetch all notifications
+    const allNotificationsRes = await fetch(`${BASE_URL}/notification.json`);
+    const allNotifications = await allNotificationsRes.json();
 
-    if (allDates) {
-      const dateKeys = Object.keys(allDates).sort().reverse(); // latest first
-      const toDelete = dateKeys.slice(2); // keep only latest 2 dates
+    if (allNotifications) {
+      // Extract unique dates from keys
+      const allDatesSet = new Set();
+      for (const key of Object.keys(allNotifications)) {
+        const keyDate = key.split(" ")[0]; // get YYYY-MM-DD from "YYYY-MM-DD HH:mm:ss"
+        allDatesSet.add(keyDate);
+      }
 
-      for (const oldDate of toDelete) {
-        await fetch(`${BASE_URL}/notification/${oldDate}.json`, {
-          method: "DELETE",
-        });
+      // Sort dates descending
+      const allDates = Array.from(allDatesSet).sort().reverse();
+
+      // Keep latest 2 dates only
+      const datesToKeep = allDates.slice(0, 2);
+
+      // Delete notifications not in datesToKeep
+      for (const key of Object.keys(allNotifications)) {
+        const keyDate = key.split(" ")[0];
+        if (!datesToKeep.includes(keyDate)) {
+          await fetch(`${BASE_URL}/notification/${encodeURIComponent(key)}.json`, {
+            method: "DELETE",
+          });
+        }
       }
     }
 
-    res.send(`✅ Notification logged at ${date} ${time} (IST), and old entries cleaned`);
+    res.send(`✅ Notification logged at ${flatKey} (IST), and old days cleaned`);
   } catch (err) {
     console.error(err);
     res.status(500).send("❌ Failed to log or clean notification");
   }
 });
+
