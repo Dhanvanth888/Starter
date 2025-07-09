@@ -122,4 +122,32 @@ app.get("/notify", async (req, res) => {
     res.status(500).send("❌ Failed to log or clean notification");
   }
 });
+app.get("/online", async (req, res) => {
+  try {
+    // Get current IST time string
+    const now = new Date();
+    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+    const istTime = new Date(utc + 5.5 * 60 * 60000);
+    const date = istTime.toISOString().split("T")[0];
+    const time = istTime.toTimeString().split(" ")[0];
+    const timestamp = `${date} ${time}`;
+
+    // Prepare PATCH body
+    const path = `/Starter`;
+    const body = { online_time: timestamp };
+
+    // Send PATCH request to Firebase
+    await fetch(`${BASE_URL}${path}.json`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    res.send(`✅ Logged current time ${timestamp} to /Starter/online_time`);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("❌ Failed to log online time");
+  }
+});
+
 
