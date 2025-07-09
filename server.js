@@ -56,7 +56,7 @@ app.listen(PORT, () => {
   console.log(`Proxy running on port ${PORT}`);
 });
 setInterval(() => {
-  require("node-fetch")(`https://${process.env.PROJECT_DOMAIN}.glitch.me`)
+  require("node-fetch")(`https://starter-pufv.onrender.com`)
     .then(res => console.log("🔄 Self-ping success"))
     .catch(err => console.error("❌ Self-ping error", err));
 }, 280000); // Every ~4.5 minutes (under 5)
