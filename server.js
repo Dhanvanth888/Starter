@@ -86,6 +86,12 @@ app.get("/notify", async (req, res) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(message),
     });
+    // new notification to show in notifier
+    await fetch(`${BASE_URL}/Starter.json`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notifi: message }),
+    });
 
     // 2️⃣ Fetch all notifications
     const allNotificationsRes = await fetch(`${BASE_URL}/notification.json`);
