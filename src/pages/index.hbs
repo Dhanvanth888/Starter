@@ -3,13 +3,18 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
-  <title>IoT Dashboard</title>
+  <title>System Dashboard</title>
+  
   <script src="https://cdn.tailwindcss.com"></script>
+  
   <style>
     body { background-color: #0f172a; color: #f8fafc; font-family: sans-serif; -webkit-tap-highlight-color: transparent; }
+    /* Glassmorphism Cards */
     .card { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 12px; }
-    .btn { transition: all 0.2s; border-bottom-width: 4px; }
+    /* Interactive Buttons */
+    .btn { transition: all 0.15s ease-in-out; border-bottom-width: 4px; }
     .btn:active { transform: translateY(2px); border-bottom-width: 0px; margin-top: 2px; }
+    /* Terminal Output */
     .terminal { font-family: 'Courier New', monospace; background: #000; color: #22c55e; height: 140px; overflow-y: auto; padding: 10px; font-size: 11px; border-radius: 8px; border: 1px solid #334155; }
   </style>
 </head>
@@ -26,53 +31,54 @@
   <div class="grid grid-cols-2 gap-3 mb-5">
     <div class="card flex flex-col items-center">
       <span class="text-[10px] uppercase text-slate-400 tracking-wider">Voltage 1</span>
-      <span id="v1" class="text-2xl font-bold text-blue-400">0.0V</span>
+      <span id="V1" class="text-2xl font-bold text-blue-400">0</span>
     </div>
     <div class="card flex flex-col items-center">
       <span class="text-[10px] uppercase text-slate-400 tracking-wider">Voltage 2</span>
-      <span id="v2" class="text-2xl font-bold text-blue-400">0.0V</span>
+      <span id="V2" class="text-2xl font-bold text-blue-400">0</span>
     </div>
     <div class="card flex flex-col items-center">
       <span class="text-[10px] uppercase text-slate-400 tracking-wider">Voltage 3</span>
-      <span id="v3" class="text-2xl font-bold text-blue-400">0.0V</span>
+      <span id="V3" class="text-2xl font-bold text-blue-400">0</span>
     </div>
     <div class="card flex flex-col items-center border-orange-900/30 bg-orange-900/10">
       <span class="text-[10px] uppercase text-orange-400/70 tracking-wider">Current</span>
-      <span id="amps" class="text-2xl font-bold text-orange-500">0.00A</span>
+      <span id="amps" class="text-2xl font-bold text-orange-500">0.00</span>
     </div>
   </div>
 
   <div class="flex gap-4 mb-6">
-    <button id="btnM1" onclick="toggleDevice('m1')" class="btn flex-1 h-16 bg-slate-700 border-slate-900 rounded-2xl font-bold text-lg text-slate-300">
+    <button id="btnM1" onclick="toggleDevice('M1')" class="btn flex-1 h-16 bg-slate-700 border-slate-900 rounded-2xl font-bold text-lg text-slate-300">
       M1 <span class="block text-xs font-normal opacity-50">OFF</span>
     </button>
-    <button id="btnM2" onclick="toggleDevice('m2')" class="btn flex-1 h-16 bg-slate-700 border-slate-900 rounded-2xl font-bold text-lg text-slate-300">
+    <button id="btnM2" onclick="toggleDevice('M2')" class="btn flex-1 h-16 bg-slate-700 border-slate-900 rounded-2xl font-bold text-lg text-slate-300">
       M2 <span class="block text-xs font-normal opacity-50">OFF</span>
     </button>
   </div>
 
   <div class="card mb-5">
-    <div class="flex justify-between items-center mb-3">
-      <h3 class="text-xs font-bold uppercase text-slate-400">Timer Setup</h3>
-      <button onclick="setTimer()" class="bg-indigo-600 hover:bg-indigo-500 text-xs px-3 py-1 rounded font-bold transition">SET</button>
+    <h3 class="text-xs font-bold uppercase text-slate-400 mb-2">Timer Configuration (Sec)</h3>
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="text-[10px] text-slate-500">On Time</label>
+        <input type="number" id="on_time" class="w-full bg-slate-900 p-2 rounded border border-slate-700 text-center text-white focus:border-indigo-500 outline-none" placeholder="0">
+      </div>
+      <div>
+        <label class="text-[10px] text-slate-500">Off Time</label>
+        <input type="number" id="off_time" class="w-full bg-slate-900 p-2 rounded border border-slate-700 text-center text-white focus:border-indigo-500 outline-none" placeholder="0">
+      </div>
     </div>
-    <div class="flex gap-2">
-      <input type="number" id="hh" placeholder="00" class="w-full bg-slate-900 text-center p-3 rounded-lg border border-slate-700 outline-none text-lg text-white">
-      <span class="py-3 text-slate-500">:</span>
-      <input type="number" id="mm" placeholder="00" class="w-full bg-slate-900 text-center p-3 rounded-lg border border-slate-700 outline-none text-lg text-white">
-      <span class="py-3 text-slate-500">:</span>
-      <input type="number" id="ss" placeholder="00" class="w-full bg-slate-900 text-center p-3 rounded-lg border border-slate-700 outline-none text-lg text-white">
-    </div>
+    <button onclick="saveTimers()" class="w-full mt-3 bg-indigo-600 hover:bg-indigo-500 py-2 rounded-lg font-bold text-sm transition text-white shadow-lg">Update Timers</button>
   </div>
 
   <div class="card p-0 overflow-hidden">
     <div class="bg-slate-800/50 px-3 py-2 flex justify-between items-center border-b border-slate-700/50">
       <span class="text-[10px] font-bold uppercase text-slate-400">Live Terminal</span>
-      <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+      <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
     </div>
     <div id="terminal" class="terminal space-y-1">
-      <div>> System initialized...</div>
-      <div>> Connecting to Starter node...</div>
+      <div>> Dashboard initialized...</div>
+      <div>> Connecting to Firebase...</div>
     </div>
   </div>
   
@@ -85,6 +91,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
+    // 🔴 Your Provided Config
     const firebaseConfig = {
       apiKey: "AIzaSyBPMbOob953J0zzpnyX0imFLdHt7s4r9OQ",
       authDomain: "starter-2cedf.firebaseapp.com",
@@ -99,61 +106,72 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // 🟢 MAIN LISTENER: Listen to 'Starter' for everything
+    // 🟢 Listen to 'Starter' Node
     onValue(ref(db, 'Starter'), (snap) => {
-      const data = snap.val();
-      if (!data) return;
+      const d = snap.val();
+      if (!d) return;
 
-      // Update Voltages & Amps
-      document.getElementById('v1').innerText = (data.v1 || 0) + "V";
-      document.getElementById('v2').innerText = (data.v2 || 0) + "V";
-      document.getElementById('v3').innerText = (data.v3 || 0) + "V";
-      document.getElementById('amps').innerText = (data.amps || 0) + "A";
+      // 1. Update Telemetry
+      // Using 'd.V1' because your DB uses uppercase keys
+      document.getElementById('V1').innerText = (d.V1 || 0);
+      document.getElementById('V2').innerText = (d.V2 || 0);
+      document.getElementById('V3').innerText = (d.V3 || 0);
+      document.getElementById('amps').innerText = (d.amps || 0);
 
-      // Update Buttons
-      updateBtn('btnM1', 'M1', data.m1);
-      updateBtn('btnM2', 'M2', data.m2);
-      
-      // Update Timer Inputs (Optional: show last set value)
-      if (data.timer) {
-        const parts = data.timer.split(':');
-        if(parts.length === 3) {
-           // Only update inputs if they are empty to avoid annoying user while typing
-           if(document.getElementById('hh').value === "") document.getElementById('hh').value = parts[0];
-           if(document.getElementById('mm').value === "") document.getElementById('mm').value = parts[1];
-           if(document.getElementById('ss').value === "") document.getElementById('ss').value = parts[2];
-        }
+      // 2. Update Motor Buttons ("1"=ON, "0"=OFF)
+      updateBtn('btnM1', 'M1', d.M1);
+      updateBtn('btnM2', 'M2', d.M2);
+
+      // 3. Update Timers (Only if user isn't typing)
+      if(document.activeElement.id !== "on_time") {
+        document.getElementById('on_time').value = d.on_time || 0;
+      }
+      if(document.activeElement.id !== "off_time") {
+        document.getElementById('off_time').value = d.off_time || 0;
       }
     });
 
-    // History Listener
+    // 🟡 Listen to Notifications
     onValue(ref(db, 'notification'), (snap) => {
       const logDiv = document.getElementById('history-log');
       logDiv.innerHTML = "";
       snap.forEach(child => {
-        logDiv.innerHTML += `<div><span class="text-slate-500">[${child.key}]</span> ${child.val()}</div>`;
+        // Prepend so new ones are on top
+        logDiv.innerHTML = `<div><span class="text-slate-500">[${child.key}]</span> ${child.val()}</div>` + logDiv.innerHTML;
       });
     });
 
-    window.toggleDevice = (device) => {
-      const btn = document.getElementById('btn' + device.toUpperCase());
+    // --- Actions ---
+
+    window.toggleDevice = (key) => {
+      const btn = document.getElementById('btn' + key);
       const isOff = btn.innerText.includes("OFF");
-      const newState = isOff ? "ON" : "OFF";
-      update(ref(db, 'Starter'), { [device]: newState });
+      // DB uses "1" for ON, "0" for OFF
+      const newVal = isOff ? "1" : "0";
+      
+      log(`Setting ${key} to ${newVal}...`);
+      update(ref(db, 'Starter'), { [key]: newVal });
     };
 
-    window.setTimer = () => {
-      const h = document.getElementById('hh').value.padStart(2, '0') || "00";
-      const m = document.getElementById('mm').value.padStart(2, '0') || "00";
-      const s = document.getElementById('ss').value.padStart(2, '0') || "00";
-      update(ref(db, 'Starter'), { timer: `${h}:${m}:${s}` });
-      log(`Timer set to ${h}:${m}:${s}`);
+    window.saveTimers = () => {
+      const onVal = document.getElementById('on_time').value;
+      const offVal = document.getElementById('off_time').value;
+      
+      log(`Saving Timers: ON=${onVal}, OFF=${offVal}`);
+      update(ref(db, 'Starter'), { 
+        on_time: onVal, 
+        off_time: offVal 
+      });
     };
 
-    function updateBtn(id, label, state) {
-      const el = document.getElementById(id);
-      const isOn = state === "ON";
-      el.innerHTML = `${label} <span class="block text-xs font-normal opacity-70">${state || 'OFF'}</span>`;
+    // Helper: Button UI Logic
+    function updateBtn(elementId, label, val) {
+      const el = document.getElementById(elementId);
+      // DB uses "1" as string for ON
+      const isOn = String(val) === "1"; 
+      
+      el.innerHTML = `${label} <span class="block text-xs font-normal opacity-70">${isOn ? 'ON' : 'OFF'}</span>`;
+      
       if (isOn) {
         el.className = "btn flex-1 h-16 bg-green-600 border-green-800 rounded-2xl font-bold text-lg text-white shadow-[0_0_15px_rgba(34,197,94,0.4)]";
       } else {
@@ -162,11 +180,12 @@
     }
 
     function log(msg) {
-      const term = document.getElementById('terminal');
-      term.innerHTML += `<div>> ${msg}</div>`;
-      term.scrollTop = term.scrollHeight;
+      const t = document.getElementById('terminal');
+      t.innerHTML += `<div>> ${msg}</div>`;
+      t.scrollTop = t.scrollHeight;
     }
 
+    // Clock
     setInterval(() => {
       document.getElementById('clock').innerText = new Date().toLocaleTimeString();
     }, 1000);
