@@ -4,17 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
   <title>System Dashboard</title>
-  
   <script src="https://cdn.tailwindcss.com"></script>
-  
   <style>
     body { background-color: #0f172a; color: #f8fafc; font-family: sans-serif; -webkit-tap-highlight-color: transparent; }
-    /* Glassmorphism Cards */
     .card { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 12px; }
-    /* Interactive Buttons */
     .btn { transition: all 0.15s ease-in-out; border-bottom-width: 4px; }
     .btn:active { transform: translateY(2px); border-bottom-width: 0px; margin-top: 2px; }
-    /* Terminal Output */
     .terminal { font-family: 'Courier New', monospace; background: #000; color: #22c55e; height: 140px; overflow-y: auto; padding: 10px; font-size: 11px; border-radius: 8px; border: 1px solid #334155; }
   </style>
 </head>
@@ -78,7 +73,7 @@
     </div>
     <div id="terminal" class="terminal space-y-1">
       <div>> Dashboard initialized...</div>
-      <div>> Connecting to Firebase...</div>
+      <div>> Waiting for data...</div>
     </div>
   </div>
   
@@ -91,7 +86,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // 🔴 Your Provided Config
     const firebaseConfig = {
       apiKey: "AIzaSyBPMbOob953J0zzpnyX0imFLdHt7s4r9OQ",
       authDomain: "starter-2cedf.firebaseapp.com",
@@ -111,18 +105,17 @@
       const d = snap.val();
       if (!d) return;
 
-      // 1. Update Telemetry
-      // Using 'd.V1' because your DB uses uppercase keys
+      // 1. Telemetry: Uppercase V1, V2, V3 / Lowercase amps
       document.getElementById('V1').innerText = (d.V1 || 0);
       document.getElementById('V2').innerText = (d.V2 || 0);
       document.getElementById('V3').innerText = (d.V3 || 0);
       document.getElementById('amps').innerText = (d.amps || 0);
 
-      // 2. Update Motor Buttons ("1"=ON, "0"=OFF)
+      // 2. Buttons: Uppercase M1, M2 ("1"=ON, "0"=OFF)
       updateBtn('btnM1', 'M1', d.M1);
       updateBtn('btnM2', 'M2', d.M2);
 
-      // 3. Update Timers (Only if user isn't typing)
+      // 3. Timers: Lowercase keys
       if(document.activeElement.id !== "on_time") {
         document.getElementById('on_time').value = d.on_time || 0;
       }
@@ -131,12 +124,10 @@
       }
     });
 
-    // 🟡 Listen to Notifications
     onValue(ref(db, 'notification'), (snap) => {
       const logDiv = document.getElementById('history-log');
       logDiv.innerHTML = "";
       snap.forEach(child => {
-        // Prepend so new ones are on top
         logDiv.innerHTML = `<div><span class="text-slate-500">[${child.key}]</span> ${child.val()}</div>` + logDiv.innerHTML;
       });
     });
@@ -144,12 +135,12 @@
     // --- Actions ---
 
     window.toggleDevice = (key) => {
+      // Key is explicitly "M1" or "M2" from onclick
       const btn = document.getElementById('btn' + key);
       const isOff = btn.innerText.includes("OFF");
-      // DB uses "1" for ON, "0" for OFF
-      const newVal = isOff ? "1" : "0";
+      const newVal = isOff ? "1" : "0"; // Send "1" or "0"
       
-      log(`Setting ${key} to ${newVal}...`);
+      log(`Setting ${key} to ${newVal}`);
       update(ref(db, 'Starter'), { [key]: newVal });
     };
 
@@ -157,17 +148,16 @@
       const onVal = document.getElementById('on_time').value;
       const offVal = document.getElementById('off_time').value;
       
-      log(`Saving Timers: ON=${onVal}, OFF=${offVal}`);
+      // Save using lowercase keys
       update(ref(db, 'Starter'), { 
         on_time: onVal, 
         off_time: offVal 
       });
+      log(`Timers saved.`);
     };
 
-    // Helper: Button UI Logic
     function updateBtn(elementId, label, val) {
       const el = document.getElementById(elementId);
-      // DB uses "1" as string for ON
       const isOn = String(val) === "1"; 
       
       el.innerHTML = `${label} <span class="block text-xs font-normal opacity-70">${isOn ? 'ON' : 'OFF'}</span>`;
@@ -185,7 +175,6 @@
       t.scrollTop = t.scrollHeight;
     }
 
-    // Clock
     setInterval(() => {
       document.getElementById('clock').innerText = new Date().toLocaleTimeString();
     }, 1000);
