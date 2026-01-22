@@ -4,12 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
   <title>IoT Dashboard</title>
-  
   <script src="https://cdn.tailwindcss.com"></script>
-  
   <style>
     body { background-color: #0f172a; color: #f8fafc; font-family: sans-serif; -webkit-tap-highlight-color: transparent; }
-    /* Glassmorphism effect for cards */
     .card { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 12px; }
     .btn { transition: all 0.2s; border-bottom-width: 4px; }
     .btn:active { transform: translateY(2px); border-bottom-width: 0px; margin-top: 2px; }
@@ -60,11 +57,11 @@
       <button onclick="setTimer()" class="bg-indigo-600 hover:bg-indigo-500 text-xs px-3 py-1 rounded font-bold transition">SET</button>
     </div>
     <div class="flex gap-2">
-      <input type="number" id="hh" placeholder="00" class="w-full bg-slate-900 text-center p-3 rounded-lg border border-slate-700 focus:border-indigo-500 outline-none text-lg">
-      <span class="py-3">:</span>
-      <input type="number" id="mm" placeholder="00" class="w-full bg-slate-900 text-center p-3 rounded-lg border border-slate-700 focus:border-indigo-500 outline-none text-lg">
-      <span class="py-3">:</span>
-      <input type="number" id="ss" placeholder="00" class="w-full bg-slate-900 text-center p-3 rounded-lg border border-slate-700 focus:border-indigo-500 outline-none text-lg">
+      <input type="number" id="hh" placeholder="00" class="w-full bg-slate-900 text-center p-3 rounded-lg border border-slate-700 outline-none text-lg text-white">
+      <span class="py-3 text-slate-500">:</span>
+      <input type="number" id="mm" placeholder="00" class="w-full bg-slate-900 text-center p-3 rounded-lg border border-slate-700 outline-none text-lg text-white">
+      <span class="py-3 text-slate-500">:</span>
+      <input type="number" id="ss" placeholder="00" class="w-full bg-slate-900 text-center p-3 rounded-lg border border-slate-700 outline-none text-lg text-white">
     </div>
   </div>
 
@@ -75,21 +72,19 @@
     </div>
     <div id="terminal" class="terminal space-y-1">
       <div>> System initialized...</div>
-      <div>> Waiting for data...</div>
+      <div>> Connecting to Starter node...</div>
     </div>
   </div>
   
   <div class="mt-4 text-center">
-    <p class="text-[10px] text-slate-600">History (Last 2 Days)</p>
+    <p class="text-[10px] text-slate-600">History</p>
     <div id="history-log" class="text-xs text-slate-400 mt-2 space-y-1"></div>
   </div>
 
   <script type="module">
-    // We use the CDN imports for the browser (no build step required)
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // 🔴 YOUR SPECIFIC CONFIGURATION
     const firebaseConfig = {
       apiKey: "AIzaSyBPMbOob953J0zzpnyX0imFLdHt7s4r9OQ",
       authDomain: "starter-2cedf.firebaseapp.com",
@@ -101,48 +96,49 @@
       measurementId: "G-RPLDSWPC7Q"
     };
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // 1. Sync Telemetry (V1, V2, V3, Amps)
-    onValue(ref(db, 'telemetry'), (snap) => {
-      const d = snap.val();
-      if (!d) return;
-      document.getElementById('v1').innerText = (d.v1 || 0) + "V";
-      document.getElementById('v2').innerText = (d.v2 || 0) + "V";
-      document.getElementById('v3').innerText = (d.v3 || 0) + "V";
-      document.getElementById('amps').innerText = (d.amps || 0) + "A";
-    });
-
-    // 2. Sync Buttons (M1, M2)
+    // 🟢 MAIN LISTENER: Listen to 'Starter' for everything
     onValue(ref(db, 'Starter'), (snap) => {
-      const d = snap.val();
-      if (d) {
-        updateBtn('btnM1', 'M1', d.m1);
-        updateBtn('btnM2', 'M2', d.m2);
+      const data = snap.val();
+      if (!data) return;
+
+      // Update Voltages & Amps
+      document.getElementById('v1').innerText = (data.v1 || 0) + "V";
+      document.getElementById('v2').innerText = (data.v2 || 0) + "V";
+      document.getElementById('v3').innerText = (data.v3 || 0) + "V";
+      document.getElementById('amps').innerText = (data.amps || 0) + "A";
+
+      // Update Buttons
+      updateBtn('btnM1', 'M1', data.m1);
+      updateBtn('btnM2', 'M2', data.m2);
+      
+      // Update Timer Inputs (Optional: show last set value)
+      if (data.timer) {
+        const parts = data.timer.split(':');
+        if(parts.length === 3) {
+           // Only update inputs if they are empty to avoid annoying user while typing
+           if(document.getElementById('hh').value === "") document.getElementById('hh').value = parts[0];
+           if(document.getElementById('mm').value === "") document.getElementById('mm').value = parts[1];
+           if(document.getElementById('ss').value === "") document.getElementById('ss').value = parts[2];
+        }
       }
     });
 
-    // 3. Sync Notification History
+    // History Listener
     onValue(ref(db, 'notification'), (snap) => {
       const logDiv = document.getElementById('history-log');
       logDiv.innerHTML = "";
-      
       snap.forEach(child => {
-        // Add to history list (bottom of page)
         logDiv.innerHTML += `<div><span class="text-slate-500">[${child.key}]</span> ${child.val()}</div>`;
       });
     });
-
-    // --- Control Functions ---
 
     window.toggleDevice = (device) => {
       const btn = document.getElementById('btn' + device.toUpperCase());
       const isOff = btn.innerText.includes("OFF");
       const newState = isOff ? "ON" : "OFF";
-      
-      log(`Sending command: ${device.toUpperCase()} = ${newState}`);
       update(ref(db, 'Starter'), { [device]: newState });
     };
 
@@ -150,21 +146,14 @@
       const h = document.getElementById('hh').value.padStart(2, '0') || "00";
       const m = document.getElementById('mm').value.padStart(2, '0') || "00";
       const s = document.getElementById('ss').value.padStart(2, '0') || "00";
-      const timeStr = `${h}:${m}:${s}`;
-      
-      log(`Setting Timer: ${timeStr}`);
-      update(ref(db, 'Starter'), { timer: timeStr });
+      update(ref(db, 'Starter'), { timer: `${h}:${m}:${s}` });
+      log(`Timer set to ${h}:${m}:${s}`);
     };
 
-    // Helper: Update Button Styles
     function updateBtn(id, label, state) {
       const el = document.getElementById(id);
       const isOn = state === "ON";
-      
-      // Update Text
       el.innerHTML = `${label} <span class="block text-xs font-normal opacity-70">${state || 'OFF'}</span>`;
-      
-      // Update Colors
       if (isOn) {
         el.className = "btn flex-1 h-16 bg-green-600 border-green-800 rounded-2xl font-bold text-lg text-white shadow-[0_0_15px_rgba(34,197,94,0.4)]";
       } else {
@@ -178,7 +167,6 @@
       term.scrollTop = term.scrollHeight;
     }
 
-    // Live Clock
     setInterval(() => {
       document.getElementById('clock').innerText = new Date().toLocaleTimeString();
     }, 1000);
