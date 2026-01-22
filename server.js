@@ -9,23 +9,23 @@ app.use(express.urlencoded({ extended: true })); // for form data
 
 const PORT = process.env.PORT || 3000;
 
-// 🧠 Your Firebase database URL
+// Your Firebase database URL
 const BASE_URL = "https://starter-2cedf-default-rtdb.firebaseio.com";
 
-[cite_start]// Setup Handlebars for the webpage [cite: 1]
+// Setup Handlebars for the webpage
 app.set("view engine", "hbs");
 app.set("views", path.join(__dirname, "src/pages"));
 app.use(express.static(path.join(__dirname, "public")));
 
 /**
- * 📱 HOME ROUTE: Renders the Dashboard
+ * MOBILE DASHBOARD ROUTE
  */
 app.get("/", (req, res) => {
   res.render("index");
 });
 
 /**
- * ⚡ ESP32 INTEGRATION ROUTE
+ * ESP32 INTEGRATION ROUTE
  * ESP32 sends: { "v1": 12.5, "v2": 12.0, "v3": 5.0, "amps": 1.2 }
  * Server responds with: { "m1": "OFF", "m2": "ON", "timer": "00:30:00" }
  */
@@ -53,10 +53,10 @@ app.post("/update-esp32", async (req, res) => {
 });
 
 /**
- * --- EXISTING UTILITY ROUTES (Retained from your file) ---
+ * --- EXISTING UTILITY ROUTES ---
  */
 
-// ✅ Read from Firebase
+// Read from Firebase
 app.get("/get", async (req, res) => {
   const path = req.query.path || "/Starter"; 
   try {
@@ -68,7 +68,7 @@ app.get("/get", async (req, res) => {
   }
 });
 
-// ✏️ Update (PUT/PATCH) data in Firebase
+// Update (PUT/PATCH) data in Firebase
 app.get("/put", async (req, res) => {
   const path = req.query.path || "/Starter";
   const key = req.query.key;
@@ -93,7 +93,7 @@ app.get("/put", async (req, res) => {
   }
 });
 
-// 🔔 Notification Route
+// Notification Route
 app.get("/notify", async (req, res) => {
   const message = req.query.message;
   if (!message) return res.status(400).send("❌ Missing message");
@@ -110,7 +110,7 @@ app.get("/notify", async (req, res) => {
   const path = `/notification/${encodeURIComponent(flatKey)}`;
 
   try {
-    // 1️⃣ Save new notification
+    // 1. Save new notification
     await fetch(`${BASE_URL}${path}.json`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -123,7 +123,7 @@ app.get("/notify", async (req, res) => {
       body: JSON.stringify({ notifi: message }),
     });
 
-    // 2️⃣ Clean old notifications (Keep 2 days)
+    // 2. Clean old notifications (Keep 2 days)
     const allNotificationsRes = await fetch(`${BASE_URL}/notification.json`);
     const allNotifications = await allNotificationsRes.json();
 
@@ -148,7 +148,7 @@ app.get("/notify", async (req, res) => {
   }
 });
 
-// 🟢 Online Status Route
+// Online Status Route
 app.get("/online", async (req, res) => {
   try {
     const now = new Date();
