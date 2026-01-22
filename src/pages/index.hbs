@@ -75,7 +75,7 @@
     </div>
     <div id="terminal" class="terminal space-y-1">
       <div>> System initialized...</div>
-      <div>> Connecting to Firebase...</div>
+      <div>> Waiting for data...</div>
     </div>
   </div>
   
@@ -85,14 +85,23 @@
   </div>
 
   <script type="module">
+    // We use the CDN imports for the browser (no build step required)
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // 🔴 YOUR DATABASE URL
+    // 🔴 YOUR SPECIFIC CONFIGURATION
     const firebaseConfig = {
-      databaseURL: "https://starter-2cedf-default-rtdb.firebaseio.com"
+      apiKey: "AIzaSyBPMbOob953J0zzpnyX0imFLdHt7s4r9OQ",
+      authDomain: "starter-2cedf.firebaseapp.com",
+      databaseURL: "https://starter-2cedf-default-rtdb.firebaseio.com",
+      projectId: "starter-2cedf",
+      storageBucket: "starter-2cedf.firebasestorage.app",
+      messagingSenderId: "961972630822",
+      appId: "1:961972630822:web:fe62ca2251f6db91b67de7",
+      measurementId: "G-RPLDSWPC7Q"
     };
 
+    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
@@ -109,22 +118,20 @@
     // 2. Sync Buttons (M1, M2)
     onValue(ref(db, 'Starter'), (snap) => {
       const d = snap.val();
-      updateBtn('btnM1', 'M1', d.m1);
-      updateBtn('btnM2', 'M2', d.m2);
+      if (d) {
+        updateBtn('btnM1', 'M1', d.m1);
+        updateBtn('btnM2', 'M2', d.m2);
+      }
     });
 
     // 3. Sync Notification History
     onValue(ref(db, 'notification'), (snap) => {
       const logDiv = document.getElementById('history-log');
       logDiv.innerHTML = "";
-      const terminal = document.getElementById('terminal');
       
       snap.forEach(child => {
         // Add to history list (bottom of page)
         logDiv.innerHTML += `<div><span class="text-slate-500">[${child.key}]</span> ${child.val()}</div>`;
-        
-        // Also add latest to terminal if it's new
-        // (Simple implementation: just logs everything on load)
       });
     });
 
