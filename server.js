@@ -170,6 +170,54 @@ app.get("/online", async (req, res) => {
   }
 });
 
+// --- DEVICE ONLINE STATUS MONITOR ---                                                                                                           
+let isDeviceOffline = false; // Prevents spamming the notification                                                                                
+                                                                                                                                                  
+setInterval(async () => {                                                                                                                         
+  try {                                                                                                                                           
+    // 1. Fetch the latest state from Firebase                                                                                                    
+    const res = await fetchWithRetry(`${BASE_URL}/Starter.json`);                                                                                 
+    const data = await res.json();                                                                                                                
+                                                                                                                                                  
+    if (data && data.last_update) {                                                                                                               
+      const now = Date.now();                                                                                                                     
+      const lastUpdate = data.last_update;                                                                                                        
+                                                                                                                                                  
+      // 2. Check if the difference is more than 1.5 minutes (90,000 ms)                                                                          
+      if (now - lastUpdate > 90000) {                                                                                                             
+        // Only notify once when it goes offline                                                                                                  
+        if (!isDeviceOffline) {                                                                                                                   
+          isDeviceOffline = true;                                                                                                                 
+                                                                                                                                                  
+          // Format the last active time into IST (matches your existing code)                                                                    
+          const date = new Date(lastUpdate);                                                                                                      
+          const utc = date.getTime() + date.getTimezoneOffset() * 60000;
+          const istTime = new Date(utc + 5.5 * 60 * 60000);
+          const timeStr = `${istTime.toISOString().split("T")[0]} ${istTime.toTimeString().split(" ")[0]}`;
+
+          // Create the notification message
+          const message = `Power Off, Last Active Time: ${timeStr}`;
+          console.log(`[Monitor] Device offline! Sending notification: ${message}`);
+
+          // Trigger your existing /notify endpoint internally
+          fetch(`http://localhost:${PORT}/notify?message=${encodeURIComponent(message)}`)
+            .catch(err => console.error("Error triggering notify:", err.message));
+        }
+      } else {
+        // If the time was updated, reset the offline flag
+        if (isDeviceOffline) {
+          console.log("[Monitor] Device came back online.");
+        }
+        isDeviceOffline = false;
+      }
+    }
+  } catch (err) {
+    console.error("[Monitor] Error checking device status:", err.message);
+  }
+}, 60000); // Runs every 60 seconds (1 minute)
+
+
+
 app.listen(PORT, () => console.log(`Proxy running on port ${PORT}`));
 
 // Self-ping with error handling
