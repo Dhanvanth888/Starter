@@ -152,69 +152,75 @@ app.get("/notify", async (req, res) => {
   } catch (err) { res.status(500).send("Error"); }
 });
 
-app.get("/online", async (req, res) => {
-  const now = new Date();
-  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-  const istTime = new Date(utc + 5.5 * 60 * 60000);
-  const timestamp = `"Online: ${istTime.toISOString().split("T")[0]} ${istTime.toTimeString().split(" ")[0]}"`;
-  
-  try {
-    await fetchWithRetry(`${BASE_URL}/Starter.json`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ online_time: timestamp }),
-    });
-    res.send(`Logged: ${timestamp}`);
-  } catch (e) {
-    res.status(500).send("Error logging time");
-  }
-});
+app.get("/online", async (req, res) => {                                                                                                                    
+  const now = new Date();                                                                                                                                   
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;                                                                                              
+  const istTime = new Date(utc + 5.5 * 60 * 60000);                                                                                                         
+  const timestamp = `"Online: ${istTime.toISOString().split("T")[0]} ${istTime.toTimeString().split(" ")[0]}"`;                                             
+                                                                                                                                                            
+  try {                                                                                                                                                     
+    await fetchWithRetry(`${BASE_URL}/Starter.json`, {                                                                                                      
+      method: "PATCH",                                                                                                                                      
+      headers: { "Content-Type": "application/json" },                                                                                                      
+      body: JSON.stringify({                                                                                                                                
+        online_time: timestamp,                                                                                                                             
+        online_timestamp: Date.now() // <--- Added this to track exact time                                                                                 
+      }),                                                                                                                                                   
+    });                                                                                                                                                     
+    res.send(`Logged: ${timestamp}`);                                                                                                                       
+  } catch (e) {                                                                                                                                             
+    res.status(500).send("Error logging time");                                                                                                             
+  }                                                                                                                                                         
+});         
 
 // --- DEVICE ONLINE STATUS MONITOR ---                                                                                                           
-let isDeviceOffline = false; // Prevents spamming the notification                                                                                
-                                                                                                                                                  
-setInterval(async () => {                                                                                                                         
-  try {                                                                                                                                           
-    // 1. Fetch the latest state from Firebase                                                                                                    
-    const res = await fetchWithRetry(`${BASE_URL}/Starter.json`);                                                                                 
-    const data = await res.json();                                                                                                                
-                                                                                                                                                  
-    if (data && data.last_update) {                                                                                                               
-      const now = Date.now();                                                                                                                     
-      const lastUpdate = data.last_update;                                                                                                        
-                                                                                                                                                  
-      // 2. Check if the difference is more than 1.5 minutes (90,000 ms)                                                                          
-      if (now - lastUpdate > 90000) {                                                                                                             
-        // Only notify once when it goes offline                                                                                                  
-        if (!isDeviceOffline) {                                                                                                                   
-          isDeviceOffline = true;                                                                                                                 
-                                                                                                                                                  
-          // Format the last active time into IST (matches your existing code)                                                                    
-          const date = new Date(lastUpdate);                                                                                                      
-          const utc = date.getTime() + date.getTimezoneOffset() * 60000;
-          const istTime = new Date(utc + 5.5 * 60 * 60000);
-          const timeStr = `${istTime.toISOString().split("T")[0]} ${istTime.toTimeString().split(" ")[0]}`;
-
-          // Create the notification message
-          const message = `Power Off, Last Active Time: ${timeStr}`;
-          console.log(`[Monitor] Device offline! Sending notification: ${message}`);
-
-          // Trigger your existing /notify endpoint internally
-          fetch(`http://localhost:${PORT}/notify?message=${encodeURIComponent(message)}`)
-            .catch(err => console.error("Error triggering notify:", err.message));
-        }
-      } else {
-        // If the time was updated, reset the offline flag
-        if (isDeviceOffline) {
-          console.log("[Monitor] Device came back online.");
-        }
-        isDeviceOffline = false;
-      }
-    }
-  } catch (err) {
-    console.error("[Monitor] Error checking device status:", err.message);
-  }
-}, 60000); // Runs every 60 seconds (1 minute)
+let isDeviceOffline = false;                                                                                                                                
+                                                                                                                                                                
+setInterval(async () => {                                                                                                                                   
+  try {                                                                                                                                                     
+    const res = await fetchWithRetry(`${BASE_URL}/Starter.json`);                                                                                           
+    const data = await res.json();                                                                                                                          
+                                                                                                                                                            
+    // Check the new timestamp we added in /online (fallback to last_update)                                                                                
+    const lastActive = data.online_timestamp || data.last_update;                                                                                           
+                                                                                                                                                            
+    if (lastActive) {                                                                                                                                       
+      // Check if more than 90 seconds (1.5 mins) have passed since the last ping                                                                           
+      if (Date.now() - lastActive > 90000) {                                                                                                                
+        if (!isDeviceOffline) {                                                                                                                             
+          isDeviceOffline = true; // Mark offline so it doesn't spam                                                                                        
+                                                                                                                                                            
+          // Generate the exact time key for the Firebase notification                                                                                      
+          const now = new Date();                                                                                                                           
+          const utc = now.getTime() + now.getTimezoneOffset() * 60000;                                                                                      
+          const istTime = new Date(utc + 5.5 * 60 * 60000);                                                                                                 
+          const flatKey = `${istTime.toISOString().split("T")[0]} ${istTime.toTimeString().split(" ")[0]}`;                                                 
+                                                                                                                                                            
+          // Write "Power Off" directly to the notification list                                                                                            
+          await fetchWithRetry(`${BASE_URL}/notification/${encodeURIComponent(flatKey)}.json`, {                                                            
+            method: "PUT",                                                                                                                                  
+            headers: { "Content-Type": "application/json" },                                                                                                
+            body: JSON.stringify("Power Off"),                                                                                                              
+          });                                                                                                                                               
+                                                                                                                                                            
+          // Also update the main notification status                                                                                                       
+          await fetchWithRetry(`${BASE_URL}/Starter.json`, {                                                                                                
+            method: "PATCH",                                                                                                                                
+            headers: { "Content-Type": "application/json" },                                                                                                
+            body: JSON.stringify({ notifi: "Power Off" }),                                                                                                  
+          });                                                                                                                                               
+                                                                                                                                                            
+          console.log("[Monitor] Sent Power Off Notification to Firebase");                                                                                 
+        }                                                                                                                                                   
+      } else {                                                                                                                                              
+        if (isDeviceOffline) console.log("[Monitor] Device back online");                                                                                   
+        isDeviceOffline = false; // Reset when device pings again                                                                                           
+      }                                                                                                                                                     
+    }                                                                                                                                                       
+  } catch (err) {                                                                                                                                           
+    console.error("[Monitor] Error:", err.message);                                                                                                         
+  }                                                                                                                                                         
+}, 60000); // Check every 60 seconds
 
 
 
