@@ -186,7 +186,7 @@ setInterval(async () => {
                                                                                                                                                             
     if (lastActive) {                                                                                                                                       
       // Check if more than 90 seconds (1.5 mins) have passed since the last ping                                                                           
-      if (Date.now() - lastActive > 90000) {                                                                                                                
+      if (Date.now() - lastActive > 180000) {                                                                                                                
         if (!isDeviceOffline) {                                                                                                                             
           isDeviceOffline = true; // Mark offline so it doesn't spam                                                                                        
                                                                                                                                                             
